@@ -3,7 +3,7 @@
 > Note: This release has breaking changes.
 
  - **FIX**(types): use reified generics in JSON traversal for wasm/minified builds (#329).
- - **FIX**(startup): handle 6133 seed fallback and invalid configs (#318).
+ - **FIX**(startup): handle 8762 seed fallback and invalid configs (#318).
  - **FIX**(asset-tagging): correct UTXO coins incorrectly tagged as Smart Chain (#244).
  - **FIX**(sdk): close balance and pubkeysubscriptions on auth state changes (#232).
  - **FIX**(zhltc): zhltc activation fixes (#227).

@@ -36,7 +36,7 @@ void main() {
           "host": "test1.example.com",
           "type": "domain",
           "wss": true,
-          "netid": 6133,
+          "netid": 8762,
           "contact": [{"email": "test1@example.com"}]
         },
         {
@@ -44,7 +44,7 @@ void main() {
           "host": "test2.example.com",
           "type": "domain",
           "wss": true,
-          "netid": 6133,
+          "netid": 8762,
           "contact": [{"email": "test2@example.com"}]
         }
       ]''';
@@ -61,7 +61,7 @@ void main() {
 
       // Assert
       expect(result.seedNodes.length, equals(2));
-      expect(result.netId, equals(6133));
+      expect(result.netId, equals(8762));
       expect(result.seedNodes[0].name, equals('test-seed-1'));
       expect(result.seedNodes[0].host, equals('test1.example.com'));
       expect(result.seedNodes[1].name, equals('test-seed-2'));
@@ -123,7 +123,7 @@ void main() {
           isA<Exception>().having(
             (e) => e.toString(),
             'message',
-            contains('No seed nodes found for netid 6133'),
+            contains('No seed nodes found for netid 8762'),
           ),
         ),
       );

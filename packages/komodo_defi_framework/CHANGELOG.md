@@ -5,7 +5,7 @@
  - **REFACTOR**(macos): streamline KDF binary placement; update signing flow (#247).
  - **FIX**(streaming): gate enable_* calls on real SSE first-byte event (#332).
  - **FIX**(auth): add mutex-protected atomic metadata updates (#328).
- - **FIX**(startup): handle 6133 seed fallback and invalid configs (#318).
+ - **FIX**(startup): handle 8762 seed fallback and invalid configs (#318).
  - **FIX**(web): improve wasm JS interop bindings (#315).
  - **FIX**(web): complete wasm-safe sdk interop cleanup (#313).
  - **FIX**: re-format build config.

@@ -29,7 +29,7 @@ void main() {
     "host": "seed01.kmdefi.net",
     "type": "domain",
     "wss": true,
-    "netid": 6133,
+    "netid": 8762,
     "contact": [{"email": ""}]
   },
   {

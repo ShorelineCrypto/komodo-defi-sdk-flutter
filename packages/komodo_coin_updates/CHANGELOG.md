@@ -3,7 +3,7 @@
 > Note: This release has breaking changes.
 
  - **PERF**(logs): reduce market metrics log verbosity and duplication (#223).
- - **FIX**(startup): handle 6133 seed fallback and invalid configs (#318).
+ - **FIX**(startup): handle 8762 seed fallback and invalid configs (#318).
  - **FIX**(config): loosen types for needs transform check and fix lightwalletservers type.
  - **FIX**(config): add ssl-only transform for native platforms.
  - **FIX**(sdk): close balance and pubkeysubscriptions on auth state changes (#232).

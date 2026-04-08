@@ -9,7 +9,7 @@ void main() {
         'host': 'seed01.kmdefi.net',
         'type': 'domain',
         'wss': true,
-        'netid': 6133,
+        'netid': 8762,
         'contact': [
           {'email': 'admin@example.com'},
         ],
@@ -29,7 +29,7 @@ void main() {
         host: 'seed02.kmdefi.net',
         type: 'domain',
         wss: true,
-        netId: 6133,
+        netId: 8762,
         contact: [SeedNodeContact(email: 'test@example.com')],
       );
 
@@ -54,7 +54,7 @@ void main() {
           'host': 'seed01.kmdefi.net',
           'type': 'domain',
           'wss': true,
-          'netid': 6133,
+          'netid': 8762,
           'contact': [
             {'email': ''},
           ],
@@ -64,7 +64,7 @@ void main() {
           'host': 'seed02.kmdefi.net',
           'type': 'domain',
           'wss': true,
-          'netid': 6133,
+          'netid': 8762,
           'contact': [
             {'email': ''},
           ],
@@ -86,7 +86,7 @@ void main() {
         host: 'example.com',
         type: 'domain',
         wss: true,
-        netId: 6133,
+        netId: 8762,
         contact: [SeedNodeContact(email: 'test@example.com')],
       );
 
@@ -95,7 +95,7 @@ void main() {
         host: 'example.com',
         type: 'domain',
         wss: true,
-        netId: 6133,
+        netId: 8762,
         contact: [SeedNodeContact(email: 'test@example.com')],
       );
 
@@ -104,7 +104,7 @@ void main() {
         host: 'example.com',
         type: 'domain',
         wss: true,
-        netId: 6133,
+        netId: 8762,
         contact: [SeedNodeContact(email: 'test@example.com')],
       );
 
