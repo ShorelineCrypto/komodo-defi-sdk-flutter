@@ -46,7 +46,7 @@ Paths in the config are relative to that package directory.
 
 ```
 "source_urls": [
-    "https://api.github.com/repos/GLEECBTC/komodo-defi-framework",
+    "https://api.github.com/repos/ShorelineCrypto/komodo-defi-framework",
     "https://devbuilds.gleec.com",
     "https://nebula.decker.im"
 ]

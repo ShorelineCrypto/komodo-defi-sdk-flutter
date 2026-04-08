@@ -30,19 +30,21 @@ void main() {
         type: 'domain',
         wss: true,
         netId: 8762,
-        contact: [
-          SeedNodeContact(email: 'test@example.com'),
-        ],
+        contact: [SeedNodeContact(email: 'test@example.com')],
       );
 
       final json = seedNode.toJson();
+      final contacts = json['contact'] as List<Object?>?;
 
       expect(json['name'], equals('seed-node-2'));
       expect(json['host'], equals('seed02.kmdefi.net'));
-      expect(json['contact'], isA<List<dynamic>>());
-      expect((json['contact'] as List).length, equals(1));
-      expect(
-          (json['contact'] as List).first['email'], equals('test@example.com'),);
+      expect(contacts, isNotNull);
+      expect(contacts, isA<List<dynamic>>());
+      final nonNullContacts = contacts!;
+      expect(nonNullContacts.length, equals(1));
+
+      final contact = nonNullContacts.first! as Map<String, Object?>;
+      expect(contact['email'], equals('test@example.com'));
     });
 
     test('should create list of SeedNodes from JSON list', () {
@@ -66,7 +68,7 @@ void main() {
           'contact': [
             {'email': ''},
           ],
-        }
+        },
       ];
 
       final seedNodes = SeedNode.fromJsonList(jsonList);

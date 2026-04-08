@@ -67,7 +67,7 @@ komodo_wallet_cli update_api_config --branch dev --source mirror --config packag
 Options:
 
 - `-b, --branch <name>` – Branch to fetch commit from (default: master)
-- `--repo <owner/repo>` – Repository (default: GLEECBTC/komodo-defi-framework)
+- `--repo <owner/repo>` – Repository (default: ShorelineCrypto/komodo-defi-framework)
 - `-c, --config <path>` – Path to build_config.json (default: build_config.json)
 - `-o, --output-dir <dir>` – Temp download dir (default: temp_downloads)
 - `-t, --token <token>` – GitHub token (or env `GITHUB_API_PUBLIC_READONLY_TOKEN`)
