@@ -39,7 +39,7 @@ void main(List<String> arguments) async {
     ..addOption(
       'repo',
       help: 'GitHub repository in format owner/repo',
-      defaultsTo: 'GLEECBTC/komodo-defi-framework',
+      defaultsTo: 'ShorelineCrypto/komodo-defi-framework',
     )
     ..addOption(
       'config',

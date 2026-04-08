@@ -5,7 +5,7 @@
     "fetch_at_build_enabled": true,
     "concurrent_downloads_enabled": true,
     "source_urls": [
-      "https://api.github.com/repos/GLEECBTC/komodo-defi-framework",
+      "https://api.github.com/repos/ShorelineCrypto/komodo-defi-framework",
       "https://devbuilds.gleec.com",
       "https://nebula.decker.im"
     ],
