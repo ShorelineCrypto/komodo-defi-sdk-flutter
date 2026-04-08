@@ -1,4 +1,3 @@
-import 'package:async/async.dart';
 import 'package:decimal/decimal.dart';
 import 'package:komodo_cex_market_data/src/cex_repository.dart';
 import 'package:komodo_cex_market_data/src/coingecko/_coingecko_index.dart';
@@ -29,8 +28,16 @@ class CoinGeckoRepository implements CexRepository {
   final IdResolutionStrategy _idResolutionStrategy;
   final bool _enableMemoization;
 
-  final AsyncMemoizer<List<CexCoin>> _coinListMemoizer = AsyncMemoizer();
+  /// Populated only after a successful fetch; failures do not poison retries.
+  List<CexCoin>? _cachedCoinList;
+  Future<List<CexCoin>>? _coinListInFlight;
   Set<String>? _cachedFiatCurrencies;
+
+  /// Tracks when the last coin list fetch failed, to prevent API request spam.
+  /// When a fetch fails (e.g. due to rate limiting), we avoid retrying until
+  /// the cooldown period has elapsed.
+  DateTime? _lastCoinListFailure;
+  static const _coinListFailureCooldown = Duration(minutes: 5);
 
   /// Fetches the CoinGecko market data.
   ///
@@ -48,30 +55,70 @@ class CoinGeckoRepository implements CexRepository {
 
   @override
   Future<List<CexCoin>> getCoinList() async {
-    if (_enableMemoization) {
-      return _coinListMemoizer.runOnce(_fetchCoinListInternal);
-    } else {
+    if (!_enableMemoization) {
       // Warning: Direct API calls without memoization can lead to API rate limiting
       // and unnecessary network requests. Use this mode sparingly.
       return _fetchCoinListInternal();
     }
+    if (_cachedCoinList != null) {
+      return _cachedCoinList!;
+    }
+
+    // Prevent API spam: don't retry if we recently failed.
+    // Without this guard, every price request triggers supports() which calls
+    // getCoinList(), and each failed call immediately retries the API — causing
+    // a request storm that exhausts rate limits.
+    if (_lastCoinListFailure != null) {
+      final elapsed = DateTime.now().difference(_lastCoinListFailure!);
+      if (elapsed < _coinListFailureCooldown) {
+        throw StateError(
+          'CoinGecko coin list fetch is in cooldown after a recent failure '
+          '(${(_coinListFailureCooldown - elapsed).inSeconds}s remaining)',
+        );
+      }
+      _lastCoinListFailure = null;
+    }
+
+    if (_coinListInFlight != null) {
+      return _coinListInFlight!;
+    }
+    _coinListInFlight = _fetchCoinListInternal()
+        .then((list) {
+          _cachedCoinList = list;
+          _lastCoinListFailure = null;
+          return list;
+        })
+        .catchError((Object error, StackTrace stackTrace) {
+          _lastCoinListFailure = DateTime.now();
+          Error.throwWithStackTrace(error, stackTrace);
+        })
+        .whenComplete(() {
+          _coinListInFlight = null;
+        });
+    return _coinListInFlight!;
   }
 
   /// Internal method to fetch coin list data from the API.
   Future<List<CexCoin>> _fetchCoinListInternal() async {
-    final coins = await coinGeckoProvider.fetchCoinList();
-    final supportedCurrencies = await coinGeckoProvider
-        .fetchSupportedVsCurrencies();
+    try {
+      final coins = await coinGeckoProvider.fetchCoinList();
+      final supportedCurrencies = await coinGeckoProvider
+          .fetchSupportedVsCurrencies();
 
-    final result = coins
-        .map((CexCoin e) => e.copyWith(currencies: supportedCurrencies.toSet()))
-        .toSet();
+      final result = coins
+          .map(
+            (CexCoin e) => e.copyWith(currencies: supportedCurrencies.toSet()),
+          )
+          .toSet();
 
-    _cachedFiatCurrencies = supportedCurrencies
-        .map((s) => s.toUpperCase())
-        .toSet();
+      _cachedFiatCurrencies = supportedCurrencies
+          .map((s) => s.toUpperCase())
+          .toSet();
 
-    return result.toList();
+      return result.toList();
+    } catch (e, st) {
+      Error.throwWithStackTrace(e, st);
+    }
   }
 
   @override
@@ -304,6 +351,10 @@ class CoinGeckoRepository implements CexRepository {
       return supportsAsset && supportsFiat;
     } on ArgumentError {
       // If we cannot resolve a trading symbol, treat as unsupported
+      return false;
+    } catch (_) {
+      // Coin list / network failures: treat as unsupported so fallback repos run
+      // without throwing from [DefaultRepositorySelectionStrategy].
       return false;
     }
   }

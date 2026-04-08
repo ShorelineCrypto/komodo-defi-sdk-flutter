@@ -37,6 +37,15 @@ abstract class IBalanceManager {
     bool activateIfNeeded = true,
   });
 
+  /// Returns whether [assetId] currently has an active watcher subscription.
+  bool hasActiveWatcher(AssetId assetId);
+
+  /// Counts how many [assetIds] do not currently have active watcher coverage.
+  int countMissingWatchersForAssets(Iterable<AssetId> assetIds);
+
+  /// Returns true when any asset in [assetIds] lacks active watcher coverage.
+  bool hasMissingWatchersForAssets(Iterable<AssetId> assetIds);
+
   /// Gets the last known balance for an asset without triggering a refresh.
   /// Returns null if no balance has been fetched yet.
   BalanceInfo? lastKnown(AssetId assetId);
@@ -116,6 +125,26 @@ class BalanceManager implements IBalanceManager {
 
   /// Getter for pubkeyManager to make it accessible
   PubkeyManager? get pubkeyManager => _pubkeyManager;
+
+  @override
+  bool hasActiveWatcher(AssetId assetId) {
+    if (_isDisposed) return false;
+    return _activeWatchers.containsKey(assetId);
+  }
+
+  @override
+  int countMissingWatchersForAssets(Iterable<AssetId> assetIds) {
+    if (_isDisposed) return assetIds.toSet().length;
+    final uniqueIds = assetIds.toSet();
+    return uniqueIds
+        .where((assetId) => !_activeWatchers.containsKey(assetId))
+        .length;
+  }
+
+  @override
+  bool hasMissingWatchersForAssets(Iterable<AssetId> assetIds) {
+    return countMissingWatchersForAssets(assetIds) > 0;
+  }
 
   /// Setter for activationCoordinator to resolve circular dependencies
   void setActivationCoordinator(SharedActivationCoordinator coordinator) {
@@ -379,15 +408,35 @@ class BalanceManager implements IBalanceManager {
 
       // If activation was requested but failed, emit error
       if (activateIfNeeded && !isActive) {
+        final activationError = ActivationFailedException(
+          assetId: assetId,
+          message: 'Asset activation failed',
+          errorCode: 'BALANCE_ACTIVATION_ERROR',
+        );
+
         if (!controller.isClosed) {
-          controller.addError(
-            ActivationFailedException(
-              assetId: assetId,
-              message: 'Asset activation failed',
-              errorCode: 'BALANCE_ACTIVATION_ERROR',
-            ),
-          );
+          controller.addError(activationError);
         }
+
+        // Recovery mode: keep this watcher alive and retry in the background
+        // so callers do not need to re-subscribe after startup races.
+        _logger.warning(
+          'Activation unavailable for ${assetId.name}; '
+          'starting recovery watchers',
+          activationError,
+        );
+        _startStaleBalanceGuard(
+          asset: asset,
+          assetId: assetId,
+          controller: controller,
+          activateIfNeeded: activateIfNeeded,
+        );
+        await _startBalancePolling(
+          asset: asset,
+          assetId: assetId,
+          controller: controller,
+          activateIfNeeded: activateIfNeeded,
+        );
         return;
       }
 
@@ -551,55 +600,63 @@ class BalanceManager implements IBalanceManager {
 
     _logger.fine('Starting balance polling fallback for ${assetId.name}');
 
-    final periodicStream = Stream<void>.periodic(_defaultPollingInterval);
-    final subscription = periodicStream
-        .asyncMap<BalanceInfo?>((_) async {
-          if (_isDisposed) return null;
+    Future<BalanceInfo?> fetchLatestBalance() async {
+      if (_isDisposed) return null;
 
-          if (_activationCoordinator == null || _pubkeyManager == null) {
-            return null;
-          }
+      if (_activationCoordinator == null || _pubkeyManager == null) {
+        return null;
+      }
 
-          final currentUser = await _auth.currentUser;
-          if (currentUser == null || currentUser.walletId != _currentWalletId) {
-            return null;
-          }
+      final currentUser = await _auth.currentUser;
+      if (currentUser == null || currentUser.walletId != _currentWalletId) {
+        return null;
+      }
 
+      if (enableDebugLogging) {
+        _logger.info(
+          '[POLLING] Fetching balance for ${assetId.name} '
+          '(every ${_defaultPollingInterval.inSeconds}s)',
+        );
+      }
+
+      try {
+        final isActive = await _ensureAssetActivated(asset, activateIfNeeded);
+
+        if (isActive) {
+          final balance = await getBalance(assetId);
           if (enableDebugLogging) {
             _logger.info(
-              '[POLLING] Fetching balance for ${assetId.name} '
-              '(every ${_defaultPollingInterval.inSeconds}s)',
+              '[POLLING] Balance fetched for ${assetId.name}: '
+              '${balance.total}',
             );
           }
+          return balance;
+        }
+      } on Object catch (error, stackTrace) {
+        if (enableDebugLogging) {
+          _logger.warning(
+            '[POLLING] Balance fetch failed for ${assetId.name}',
+            error,
+            stackTrace,
+          );
+        }
+      }
 
-          try {
-            final isActive = await _ensureAssetActivated(
-              asset,
-              activateIfNeeded,
-            );
+      return lastKnown(assetId);
+    }
 
-            if (isActive) {
-              final balance = await getBalance(assetId);
-              if (enableDebugLogging) {
-                _logger.info(
-                  '[POLLING] Balance fetched for ${assetId.name}: '
-                  '${balance.total}',
-                );
-              }
-              return balance;
-            }
-          } catch (error, stackTrace) {
-            if (enableDebugLogging) {
-              _logger.warning(
-                '[POLLING] Balance fetch failed for ${assetId.name}',
-                error,
-                stackTrace,
-              );
-            }
-          }
+    // Kick off an immediate refresh so polling fallback can recover quickly
+    // after startup races without waiting for the first periodic tick.
+    unawaited(() async {
+      final balance = await fetchLatestBalance();
+      if (balance != null && !controller.isClosed) {
+        controller.add(balance);
+      }
+    }());
 
-          return lastKnown(assetId);
-        })
+    final periodicStream = Stream<void>.periodic(_defaultPollingInterval);
+    final subscription = periodicStream
+        .asyncMap<BalanceInfo?>((_) => fetchLatestBalance())
         .listen(
           (balance) {
             if (balance != null && !controller.isClosed) {
@@ -837,9 +894,7 @@ class BalanceManager implements IBalanceManager {
 
     // Snapshot controllers and close all concurrently; swallow errors
     final List<StreamSubscription<AssetPubkeys>> pubkeyHintSubs =
-        List<StreamSubscription<AssetPubkeys>>.from(
-          _pubkeyHintWatchers.values,
-        );
+        List<StreamSubscription<AssetPubkeys>>.from(_pubkeyHintWatchers.values);
     _pubkeyHintWatchers.clear();
     for (final StreamSubscription<AssetPubkeys> sub in pubkeyHintSubs) {
       cancelFutures.add(
