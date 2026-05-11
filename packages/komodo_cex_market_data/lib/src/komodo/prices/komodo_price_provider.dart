@@ -64,8 +64,8 @@ class KomodoPriceProvider implements IKomodoPriceProvider {
     final CHTAResponse = await http.get(Uri.parse('https://api.nonkyc.io/api/v2/market/trades?symbol=CHTA_DOGE'));
     final chtaNonkycData = jsonDecode(CHTAResponse.body);
     final double CHTA_DOGE_price = double.parse(chtaNonkycData[0]['price'].toString());
-    final double CHTA_USD_price = CHTA_DOGE_price * prices['DOGE']!.lastPrice;
-    prices['CHTA'] = prices['CHTA']!.copyWith(lastPrice: CHTA_USD_price);
+    final double CHTA_USD_price = CHTA_DOGE_price * prices['DOGE']!.lastPrice.toDouble();
+    prices['CHTA'] = prices['CHTA']!.copyWith(lastPrice: Decimal.parse(CHTA_USD_price.toString()));
     return prices;
   }
 }
