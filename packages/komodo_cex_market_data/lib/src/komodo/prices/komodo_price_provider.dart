@@ -55,6 +55,17 @@ class KomodoPriceProvider implements IKomodoPriceProvider {
         pricesData as Map<String, dynamic>,
       ).copyWith(ticker: priceTicker);
     });
+    // no CHTA in current komodo price json, fill in
+    if (!prices.containsKey('CHTA')) {
+      prices['CHTA'] = Map<String, dynamic>.from(prices['KMD']);
+      prices['CHTA']['ticker'] = 'CHTA';
+    }
+    // obtain accurate prices on CHTA from nonKYC.io
+    final CHTAResponse = await http.get(Uri.parse('https://api.nonkyc.io/api/v2/market/trades?symbol=CHTA_DOGE'));
+    final CHTA_nonkyc_price = json.decode(CHTAResponse.body);
+    final double CHTA_DOGE_price = double.parse(CHTA_nonkyc_price[0]['price'].toString());
+    final double CHTA_USD_price = CHTA_DOGE_price * double.parse(prices['DOGE']['last_price'].toString());
+    prices['CHTA']['last_price'] = CHTA_USD_price.toString();
     return prices;
   }
 }
