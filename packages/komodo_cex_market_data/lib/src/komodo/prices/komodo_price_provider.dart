@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-
+import 'package:decimal/decimal.dart';
 import 'package:http/http.dart' as http;
 import 'package:komodo_cex_market_data/src/models/_models_index.dart';
 
@@ -55,6 +55,16 @@ class KomodoPriceProvider implements IKomodoPriceProvider {
         pricesData as Map<String, dynamic>,
       ).copyWith(ticker: priceTicker);
     });
+    // no CHTA in current komodo price json, fill in
+    if (!prices.containsKey('CHTA')) {
+      prices['CHTA'] = prices['KMD']!.copyWith(ticker: 'CHTA');
+    }
+    // obtain accurate prices on CHTA from nonKYC.io
+    var CHTAResponse = await http.get(Uri.parse('https://api.nonkyc.io/api/v2/market/trades?symbol=CHTA_DOGE'));
+    dynamic chtaNonkycData = jsonDecode(CHTAResponse.body);
+    double CHTA_DOGE_price = double.parse(chtaNonkycData[0]['price'].toString());
+    double CHTA_USD_price = CHTA_DOGE_price * prices['DOGE']!.lastPrice.toDouble();
+    prices['CHTA'] = prices['CHTA']!.copyWith(lastPrice: Decimal.parse(CHTA_USD_price.toString()));
     return prices;
   }
 }
