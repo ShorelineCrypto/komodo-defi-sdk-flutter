@@ -7,6 +7,7 @@ import 'package:args/args.dart';
 import 'package:crypto/crypto.dart';
 import 'package:html/parser.dart' as parser;
 import 'package:http/http.dart' as http;
+import 'package:komodo_wallet_build_transformer/komodo_wallet_build_transformer.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 
@@ -38,7 +39,7 @@ void main(List<String> arguments) async {
     ..addOption(
       'repo',
       help: 'GitHub repository in format owner/repo',
-      defaultsTo: 'GLEECBTC/komodo-defi-framework',
+      defaultsTo: 'ShorelineCrypto/komodo-defi-framework',
     )
     ..addOption(
       'config',
@@ -605,13 +606,16 @@ class KdfFetcher {
     String? matchingKeyword,
     List<String> matchingPreference,
   ) async {
-    // Try both branch-scoped and base listings; mirrors now expose branch paths
+    // Try raw and sanitized branch-scoped listings before falling back to the base index.
     final normalizedMirror = mirrorUrl.endsWith('/')
         ? mirrorUrl
         : '$mirrorUrl/';
     final mirrorUri = Uri.parse(normalizedMirror);
+    final sanitizedBranch = branch.replaceAll('/', '-');
     final listingUrls = <Uri>{
       if (branch.isNotEmpty) mirrorUri.resolve('$branch/'),
+      if (branch.isNotEmpty && sanitizedBranch != branch)
+        mirrorUri.resolve('$sanitizedBranch/'),
       mirrorUri,
     };
 
@@ -794,8 +798,7 @@ class KdfFetcher {
 
     // Write config back to disk
     final configFile = File(configPath);
-    const encoder = JsonEncoder.withIndent('    ');
-    await configFile.writeAsString(encoder.convert(config));
+    await configFile.writeAsString(formatJsonForIde(config));
 
     log.info(
       'Updated build config with commit hash: $commitHash${currentBranch != branch ? ' and branch: $branch' : ''}',

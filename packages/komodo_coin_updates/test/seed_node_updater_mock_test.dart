@@ -95,6 +95,43 @@ void main() {
       verifyNever(() => mockClient.close());
     });
 
+    test('should throw when no seed nodes match the default netid', () async {
+      // Arrange
+      final mockResponse = MockResponse();
+      const responseBody = '''[
+        {
+          "name": "stale-seed-1",
+          "host": "stale1.example.com",
+          "type": "domain",
+          "wss": true,
+          "netid": 8762,
+          "contact": [{"email": "stale1@example.com"}]
+        }
+      ]''';
+
+      when(() => mockResponse.statusCode).thenReturn(200);
+      when(() => mockResponse.body).thenReturn(responseBody);
+      when(() => mockClient.get(any())).thenAnswer((_) async => mockResponse);
+
+      // Act & Assert
+      await expectLater(
+        () => SeedNodeUpdater.fetchSeedNodes(
+          config: config,
+          httpClient: mockClient,
+        ),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('No seed nodes found for netid 8762'),
+          ),
+        ),
+      );
+
+      verify(() => mockClient.get(any())).called(1);
+      verifyNever(() => mockClient.close());
+    });
+
     test('should handle HTTP errors properly', () async {
       // Arrange
       final mockResponse = MockResponse();
