@@ -1,4 +1,5 @@
 import 'package:komodo_defi_rpc_methods/src/common_structures/activation/activation_params/activation_params.dart';
+import 'package:komodo_defi_rpc_methods/src/common_structures/activation/utxo_merge_params.dart';
 import 'package:komodo_defi_types/komodo_defi_type_utils.dart';
 
 class UtxoActivationParams extends ActivationParams {
@@ -15,6 +16,7 @@ class UtxoActivationParams extends ActivationParams {
     this.txVersion,
     this.txFee,
     this.dustAmount,
+    this.utxoMergeParams,
     this.pubtype,
     this.p2shtype,
     this.wiftype,
@@ -38,6 +40,7 @@ class UtxoActivationParams extends ActivationParams {
     int? txVersion,
     int? txFee,
     int? dustAmount,
+    UtxoMergeParams? utxoMergeParams,
     int? pubtype,
     int? p2shtype,
     int? wiftype,
@@ -55,6 +58,7 @@ class UtxoActivationParams extends ActivationParams {
       txVersion: txVersion,
       txFee: txFee,
       dustAmount: dustAmount,
+      utxoMergeParams: utxoMergeParams,
       pubtype: pubtype,
       p2shtype: p2shtype,
       wiftype: wiftype,
@@ -72,6 +76,7 @@ class UtxoActivationParams extends ActivationParams {
     int? txVersion,
     int? txFee,
     int? dustAmount,
+    UtxoMergeParams? utxoMergeParams,
     int? pubtype,
     int? p2shtype,
     int? wiftype,
@@ -86,6 +91,7 @@ class UtxoActivationParams extends ActivationParams {
       txVersion: txVersion,
       txFee: txFee,
       dustAmount: dustAmount,
+      utxoMergeParams: utxoMergeParams,
       pubtype: pubtype,
       p2shtype: p2shtype,
       wiftype: wiftype,
@@ -95,6 +101,7 @@ class UtxoActivationParams extends ActivationParams {
 
   factory UtxoActivationParams.fromJson(JsonMap json) {
     final base = ActivationParams.fromConfigJson(json);
+    final utxoMergeParamsJson = json.valueOrNull<JsonMap>('utxo_merge_params');
 
     return UtxoActivationParams._(
       mode:
@@ -112,6 +119,9 @@ class UtxoActivationParams extends ActivationParams {
       txVersion: json.valueOrNull<int>('txversion'),
       txFee: json.valueOrNull<int>('txfee'),
       dustAmount: json.valueOrNull<int>('dust_amount'),
+      utxoMergeParams: utxoMergeParamsJson == null
+          ? null
+          : UtxoMergeParams.fromJson(utxoMergeParamsJson),
       pubtype: json.valueOrNull<int>('pubtype'),
       p2shtype: json.valueOrNull<int>('p2shtype'),
       wiftype: json.valueOrNull<int>('wiftype'),
@@ -123,6 +133,7 @@ class UtxoActivationParams extends ActivationParams {
   final int? txVersion;
   final int? txFee;
   final int? dustAmount;
+  final UtxoMergeParams? utxoMergeParams;
   final int? pubtype;
   final int? p2shtype;
   final int? wiftype;
@@ -135,6 +146,8 @@ class UtxoActivationParams extends ActivationParams {
       if (txVersion != null) 'txversion': txVersion,
       if (txFee != null) 'txfee': txFee,
       if (dustAmount != null) 'dust_amount': dustAmount,
+      if (utxoMergeParams != null)
+        'utxo_merge_params': utxoMergeParams!.toJson(),
       if (pubtype != null) 'pubtype': pubtype,
       if (p2shtype != null) 'p2shtype': p2shtype,
       if (wiftype != null) 'wiftype': wiftype,
@@ -148,6 +161,7 @@ class UtxoActivationParams extends ActivationParams {
     int? txVersion,
     int? txFee,
     int? dustAmount,
+    UtxoMergeParams? utxoMergeParams,
     int? pubtype,
     int? p2shtype,
     int? wiftype,
@@ -172,6 +186,7 @@ class UtxoActivationParams extends ActivationParams {
       txVersion: txVersion ?? this.txVersion,
       txFee: txFee ?? this.txFee,
       dustAmount: dustAmount ?? this.dustAmount,
+      utxoMergeParams: utxoMergeParams ?? this.utxoMergeParams,
       pubtype: pubtype ?? this.pubtype,
       p2shtype: p2shtype ?? this.p2shtype,
       wiftype: wiftype ?? this.wiftype,
